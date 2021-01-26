@@ -20,7 +20,9 @@
 @implementation InstagramStories
 RCT_EXPORT_MODULE();
 
-- (void)backgroundImage:(NSData *)backgroundImage attributionURL:(NSString *)attributionURL {
+- (void)backgroundImage:(NSData *)backgroundImage
+         attributionURL:(NSString *)attributionURL
+        failureCallback:(RCTResponseErrorBlock)failureCallback {
     // Verify app can open custom URL scheme, open if able
     
     NSURL *urlScheme = [NSURL URLWithString:@"instagram-stories://share"];
@@ -32,7 +34,7 @@ RCT_EXPORT_MODULE();
         [[UIPasteboard generalPasteboard] setItems:pasteboardItems options:pasteboardOptions];
         [[UIApplication sharedApplication] openURL:urlScheme options:@{} completionHandler:nil];
     } else { // Handle older app versions or app not installed case
-        [self fallbackInstagram];
+        [self fallbackInstagram: failureCallback];
     }
 }
 
@@ -40,6 +42,7 @@ RCT_EXPORT_MODULE();
   backgroundTopColor:(NSString *)backgroundTopColor
 backgroundBottomColor:(NSString *)backgroundBottomColor
       attributionURL:(NSString *)attributionURL
+     failureCallback:(RCTResponseErrorBlock)failureCallback
 {
     // Verify app can open custom URL scheme. If able,
     // assign assets to pasteboard, open scheme.
@@ -59,11 +62,14 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
         [[UIApplication sharedApplication] openURL:urlScheme options:@{} completionHandler:nil];
         
     } else { // Handle older app versions or app not installed case
-        [self fallbackInstagram];
+        [self fallbackInstagram: failureCallback];
     }
 }
 
-- (void)backgroundImage:(NSData *)backgroundImage stickerImage:(NSData *)stickerImage attributionURL:(NSString *)attributionURL
+- (void)backgroundImage:(NSData *)backgroundImage
+           stickerImage:(NSData *)stickerImage
+         attributionURL:(NSString *)attributionURL
+        failureCallback:(RCTResponseErrorBlock)failureCallback
 {
     // Verify app can open custom URL scheme. If able,
     // assign assets to pasteboard, open scheme.
@@ -78,11 +84,11 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
         [[UIApplication sharedApplication] openURL:urlScheme options:@{} completionHandler:nil];
         
     } else { // Handle older app versions or app not installed case
-        [self fallbackInstagram];
+        [self fallbackInstagram: failureCallback];
     }
 }
 
-- (void)backgroundVideo:(NSData *)backgroundVideo
+- (void)backgroundVideo:(NSData *)backgroundVideo failureCallback:(RCTResponseErrorBlock)failureCallback
 {
     // Verify app can open custom URL scheme. If able,
     // assign assets to pasteboard, open scheme.
@@ -94,7 +100,7 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
         // This call is iOS 10+, can use 'setItems' depending on what versions you support
         [[UIPasteboard generalPasteboard] setItems:pasteboardItems options:pasteboardOptions]; [[UIApplication sharedApplication] openURL:urlScheme options:@{} completionHandler:nil];
     } else { // Handle older app versions or app not installed case
-        [self fallbackInstagram];
+        [self fallbackInstagram: failureCallback];
     }
 }
 
@@ -118,7 +124,9 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
             } else {
                 UIImage *image = [UIImage imageWithData: [NSData dataWithContentsOfURL:URL]];
                 
-                [self backgroundImage:UIImagePNGRepresentation(image) attributionURL:attrURL];
+                [self backgroundImage:UIImagePNGRepresentation(image)
+                       attributionURL:attrURL
+                      failureCallback:failureCallback];
             }
         } else if([method isEqualToString:@"shareStickerImage"]) {
             RCTLog(@"method shareStickerImage");
@@ -138,7 +146,11 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
             } else {
                 UIImage *image = [UIImage imageWithData: [NSData dataWithContentsOfURL:URL]];
                 
-                [self stickerImage:UIImagePNGRepresentation(image) backgroundTopColor:backgroundTopColor backgroundBottomColor:backgroundBottomColor attributionURL:attrURL];
+                [self stickerImage:UIImagePNGRepresentation(image)
+                backgroundTopColor:backgroundTopColor
+             backgroundBottomColor:backgroundBottomColor
+                    attributionURL:attrURL
+                   failureCallback:failureCallback];
             }
         } else if([method isEqualToString:@"shareBackgroundAndStickerImage"]) {
             RCTLog(@"method shareBackgroundAndStickerImage");
@@ -151,7 +163,10 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
             } else {
                 UIImage *backgroundImage = [UIImage imageWithData: [NSData dataWithContentsOfURL:backgroundURL]];
                 UIImage *stickerImage = [UIImage imageWithData: [NSData dataWithContentsOfURL:stickerURL]];
-                [self backgroundImage:UIImagePNGRepresentation(backgroundImage) stickerImage:UIImagePNGRepresentation(stickerImage) attributionURL:attrURL];
+                [self backgroundImage:UIImagePNGRepresentation(backgroundImage)
+                         stickerImage:UIImagePNGRepresentation(stickerImage)
+                       attributionURL:attrURL
+                      failureCallback:failureCallback];
             }
         } else if([method isEqualToString:@"shareBackgroundVideo"]) {
             
@@ -160,7 +175,7 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
                 RCTLogError(@"key 'backgroundVideo' missing in options");
             } else {
                 NSData *backgroundVideo = [[NSFileManager defaultManager] contentsAtPath: URL];
-                [self backgroundVideo: backgroundVideo];
+                [self backgroundVideo: backgroundVideo failureCallback:failureCallback];
             }
         }
     } else {
@@ -168,16 +183,12 @@ backgroundBottomColor:(NSString *)backgroundBottomColor
     }
 }
 
-- (void)fallbackInstagram {
+- (void)fallbackInstagram:(RCTResponseErrorBlock)failureCallback {
     // Cannot open instagram
-    NSString *stringURL = @"http://itunes.apple.com/app/instagram/id389801252";
-    NSURL *url = [NSURL URLWithString:stringURL];
-    [[UIApplication sharedApplication] openURL:url];
-    
     NSString *errorMessage = @"Not installed";
     NSDictionary *userInfo = @{NSLocalizedFailureReasonErrorKey: NSLocalizedString(errorMessage, nil)};
     NSError *error = [NSError errorWithDomain:@"com.rnshare" code:1 userInfo:userInfo];
-    
+    failureCallback(error);
     NSLog(errorMessage);
 }
 // https://instagram.fhrk1-1.fna.fbcdn.net/vp/80c479ffc246a9320e614fa4def6a3dc/5C667D3F/t51.12442-15/e35/50679864_1663709050595244_6964601913751831460_n.jpg?_nc_ht=instagram.fhrk1-1.fna.fbcdn.net
