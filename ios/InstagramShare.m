@@ -50,7 +50,7 @@
         
         NSLog(@"%@", errorMessage);
         failureCallback(error);
-    } 
+    }
 }
 
 - (void)shareSingleImage:(NSDictionary *)options
@@ -99,14 +99,16 @@
         if (success) {
             NSURL *instagramURL = [NSURL URLWithString:[NSString stringWithFormat:@"instagram://library?LocalIdentifier=\%@", [placeholder localIdentifier]]];
             
-            if ([[UIApplication sharedApplication] canOpenURL:instagramURL]) {
-                if (@available(iOS 10.0, *)) {
-                    [[UIApplication sharedApplication] openURL:instagramURL options:@{} completionHandler:NULL];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if ([[UIApplication sharedApplication] canOpenURL:instagramURL]) {
+                    if (@available(iOS 10.0, *)) {
+                        [[UIApplication sharedApplication] openURL:instagramURL options:@{} completionHandler:NULL];
+                    }
+                    if (successCallback != NULL) {
+                        successCallback(@[]);
+                    }
                 }
-                if (successCallback != NULL) {
-                    successCallback(@[]);
-                }
-            }
+            });
         }
         else {
             //Error while writing
